@@ -16,3 +16,11 @@ jobs:
             -destination 'platform=macOS' -skipPackagePluginValidation -skipMacroValidation \
             CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO 2>&1 | tee build.log | grep -E "error:|✘|✔ Test|Test run|TEST (SUCCEEDED|FAILED)"
           exit ${PIPESTATUS[0]}
+      - name: Package app
+        run: |
+          app=$(find ~/Library/Developer/Xcode/DerivedData -path "*Build/Products/Debug/HeyVedu Dev.app" -maxdepth 6 | head -1)
+          ditto -c -k --keepParent "$app" HeyVedu-Dev.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HeyVedu-Dev
+          path: HeyVedu-Dev.zip
