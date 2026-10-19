@@ -148,7 +148,7 @@ private struct MainView: View {
                 navigation.openSettings(.privacy)
             }
         case .dictionary:
-            DictionaryView(dictionary: controller.dictionary)
+            DictionaryView(dictionary: controller.dictionary, snippets: controller.snippets)
         case .snippets:
             SnippetsView(library: controller.snippets, dictionary: controller.dictionary.matcher)
         case .settings:

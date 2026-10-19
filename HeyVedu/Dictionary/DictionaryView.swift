@@ -3,6 +3,7 @@ import SwiftUI
 /// Editor for the personal dictionary: the main window's Dictionary section.
 struct DictionaryView: View {
     @Bindable var dictionary: PersonalDictionary
+    var snippets: SnippetLibrary
 
     @State private var term = ""
     /// Alternatives for the entry being written, one per chip.
@@ -11,6 +12,8 @@ struct DictionaryView: View {
     /// The entry loaded into the fields for editing, if any.
     @State private var editing: PersonalDictionary.Entry.ID?
     @State private var sample = ""
+    /// What the last Wispr Flow import did, shown in an alert.
+    @State private var importMessage: String?
     @FocusState private var focus: Field?
 
     private enum Field { case term, alternative }
@@ -19,8 +22,14 @@ struct DictionaryView: View {
 
     var body: some View {
         MainPage {
-            Text("Names and terms HeyVedu should always spell your way.")
-                .font(.headline)
+            HStack {
+                Text("Names and terms HeyVedu should always spell your way.")
+                    .font(.headline)
+                Spacer()
+                if FileManager.default.fileExists(atPath: WisprFlowImport.defaultFileURL.path) {
+                    Button("Import from Wispr Flow", systemImage: "square.and.arrow.down", action: importFromWispr)
+                }
+            }
 
             entryEditor
 
@@ -47,6 +56,13 @@ struct DictionaryView: View {
             }
         }
         .onAppear { focus = .term }
+        .alert("Import from Wispr Flow", isPresented: Binding(
+            get: { importMessage != nil }, set: { if !$0 { importMessage = nil } }
+        )) {
+            Button("OK") {}
+        } message: {
+            Text(importMessage ?? "")
+        }
     }
 
     private var entryEditor: some View {
@@ -128,6 +144,22 @@ struct DictionaryView: View {
             dictionary.entries.append(.init(term: trimmedTerm, alternatives: alternatives))
         }
         clearFields()
+    }
+
+    private func importFromWispr() {
+        do {
+            let rows = try WisprFlowImport.read()
+            var entries = dictionary.entries
+            var imported = snippets.snippets
+            let result = WisprFlowImport.merge(rows, entries: &entries, snippets: &imported)
+            dictionary.entries = entries
+            snippets.snippets = imported
+            importMessage = result == .init()
+                ? "Everything in Wispr Flow is already here."
+                : "Added \(result.words) word\(result.words == 1 ? "" : "s") and \(result.snippets) snippet\(result.snippets == 1 ? "" : "s")."
+        } catch {
+            importMessage = error.localizedDescription
+        }
     }
 
     private func load(_ entry: PersonalDictionary.Entry) {

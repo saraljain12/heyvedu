@@ -1,0 +1,18 @@
+name: test
+on: [push, workflow_dispatch]
+jobs:
+  test:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pick newest Xcode
+        run: |
+          ls -d /Applications/Xcode*.app
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
+          xcodebuild -version
+      - name: Test
+        run: |
+          xcodebuild test -project HeyVedu.xcodeproj -scheme HeyVedu -configuration Debug \
+            -destination 'platform=macOS' -skipPackagePluginValidation -skipMacroValidation \
+            CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO 2>&1 | tee build.log | grep -E "error:|✘|✔ Test|Test run|TEST (SUCCEEDED|FAILED)"
+          exit ${PIPESTATUS[0]}
